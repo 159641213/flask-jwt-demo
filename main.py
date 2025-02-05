@@ -1,5 +1,5 @@
 """
-app.py - Flask JWT认证示例（预置用户）
+app.py - Flask JWT 认证示例（支持注册、权限控制）
 """
 import sqlite3
 import jwt
@@ -19,7 +19,6 @@ PRESEED_USERS = [
     {'username': 'user1', 'password': 'user123', 'role': 'user'}
 ]
 
-
 # 数据库连接管理
 def get_db():
     db = getattr(g, '_database', None)
@@ -28,13 +27,11 @@ def get_db():
         db.row_factory = sqlite3.Row
     return db
 
-
 @app.teardown_appcontext
 def close_db(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
-
 
 def init_db():
     with app.app_context():
@@ -48,7 +45,6 @@ def init_db():
             )
         ''')
         db.commit()
-
 
 def create_preseeds():
     with app.app_context():
@@ -67,7 +63,6 @@ def create_preseeds():
                 )
         db.commit()
 
-
 # JWT工具函数
 def generate_token(username, role):
     payload = {
@@ -78,7 +73,6 @@ def generate_token(username, role):
         )
     }
     return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
-
 
 def decode_token(token):
     try:
@@ -92,7 +86,6 @@ def decode_token(token):
         return None
     except jwt.InvalidTokenError:
         return None
-
 
 # 装饰器
 def token_required(f):
@@ -120,9 +113,7 @@ def token_required(f):
 
         request.current_user = user
         return f(*args, **kwargs)
-
     return decorated
-
 
 def admin_required(f):
     @wraps(f)
@@ -130,11 +121,42 @@ def admin_required(f):
         if request.current_user['role'] != 'admin':
             return jsonify({'message': '需要管理员权限'}), 403
         return f(*args, **kwargs)
-
     return decorated
 
-
 # 路由
+@app.route('/register', methods=['POST'])
+@token_required
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')  # 默认角色为普通用户
+
+    if not username or not password:
+        return jsonify({'message': '需要用户名和密码'}), 400
+
+    # 只有管理员可以创建管理员用户
+    if role == 'admin' and request.current_user['role'] != 'admin':
+        return jsonify({'message': '无权创建管理员用户'}), 403
+
+    db = get_db()
+    existing_user = db.execute(
+        'SELECT 1 FROM users WHERE username = ?',
+        (username,)
+    ).fetchone()
+
+    if existing_user:
+        return jsonify({'message': '用户名已存在'}), 400
+
+    password_hash = bcrypt.hash(password)
+    db.execute(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        (username, password_hash, role)
+    )
+    db.commit()
+
+    return jsonify({'message': '用户注册成功'}), 201
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -153,7 +175,6 @@ def login():
     token = generate_token(user['username'], user['role'])
     return jsonify({'token': token})
 
-
 @app.route('/protected')
 @token_required
 def protected_route():
@@ -161,7 +182,6 @@ def protected_route():
         'message': f'你好 {request.current_user["username"]}',
         'role': request.current_user["role"]
     })
-
 
 @app.route('/admin/dashboard')
 @token_required
@@ -173,4 +193,5 @@ def admin_dashboard():
 if __name__ == '__main__':
     init_db()
     create_preseeds()
+    # app.run(ssl_context='adhoc', host='0.0.0.0', port=5000)
     app.run( host='0.0.0.0', port=5000)

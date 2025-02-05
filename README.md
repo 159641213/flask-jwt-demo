@@ -1,46 +1,36 @@
-# flask-jwt-demo
-个人练习演示flask不同接口不同权限
-Flask JWT 认证示例
-功能特性
+# Flask JWT 认证示例
 
+## 功能特性
+- 用户注册（支持管理员和普通用户）
+- 用户登录（JWT Token 认证）
+- 基于角色的权限控制（admin/user）
+- SQLite 文件数据库存储
+- 安全防护措施
+- 单文件实现（app.py）
 
-JWT Token认证
+## 技术栈选择
+1. **Flask**: 轻量级 Web 框架，适合快速开发 API。
+2. **JWT**: 无状态 Token 认证，天然支持分布式系统。
+3. **SQLite**: 文件数据库，无需额外服务，适合单机部署。
+4. **passlib**: 安全的密码哈希算法（bcrypt）。
+5. **HTTPS**: 开发环境使用自签名证书，生产环境应使用正式证书。
 
-基于角色的权限控制（admin/user）
+## 安全设计
+1. 密码使用 bcrypt 哈希存储。
+2. JWT 设置短期有效期（15 分钟）。
+3. 强制 HTTPS（生产环境）。
+4. 敏感信息不记录日志。
+5. SQL 注入防护（参数化查询）。
+6. 只有管理员可以创建管理员用户。
 
-SQLite文件数据库存储
+## 性能优化
+1. 数据库连接复用。
+2. JWT 无状态特性减少数据库查询。
+3. 轻量级依赖（总依赖包 < 10 个）。
+4. 缓存机制（示例中预留接口）。
 
-安全防护措施
+## 快速开始
 
-单文件实现（app.py）
-
-技术栈选择
-Flask: 轻量级Web框架，适合快速开发API
-
-JWT: 无状态Token认证，天然支持分布式系统
-
-SQLite: 文件数据库，无需额外服务，适合单机部署
-
-passlib: 安全的密码哈希算法（bcrypt）
-
-Pydantic: 数据验证，防止无效请求
-
-安全设计
-密码使用bcrypt哈希存储
-
-
-强制HTTPS（生产环境）
-
-
-
-轻量级依赖（总依赖包<10个）
-
-
-安装依赖
-
-# 安装依赖
-pip install flask pyjwt passlib pydantic
-
-# 启动服务
-python3 main.py
-
+### 安装依赖
+```bash
+pip install flask passlib pyjwt
